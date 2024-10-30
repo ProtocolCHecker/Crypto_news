@@ -377,21 +377,46 @@ protocols = [
 
 
 # Streamlit app
+
 st.title("Crypto News Aggregator")
+
+# Step 1: Fetch data on button click and store in session state
+if "news_data" not in st.session_state:
+    st.session_state["news_data"] = pd.DataFrame()
 
 if st.button("Fetch and Display Latest News"):
     # Run the function when the button is pressed
     news_df = fetch_and_sort_news()
-    
-    # Display the full table of news
-    if not news_df.empty:
-        st.write("### All News Ordered by Date")
-        st.dataframe(news_df)
-        
-        # Filter and display only relevant protocol news
-        protocol_news_df = filter_news_by_protocols(news_df, protocols)
-        st.write("### News Related to Specific Protocols")
-        st.dataframe(protocol_news_df)
-    else:
-        st.write("No data available or failed to fetch news.")
+    st.session_state["news_data"] = news_df  # Store data in session state
 
+# Only proceed if there is data available
+if not st.session_state["news_data"].empty:
+    news_df = st.session_state["news_data"]
+    
+    # Display the full table of news with filter by "News Paper"
+    st.write("### All News Ordered by Date")
+    news_sources = ["All"] + list(news_df["News Paper"].unique())
+    selected_source = st.selectbox("Filter by News Paper", news_sources)
+    
+    if selected_source != "All":
+        filtered_news_df = news_df[news_df["News Paper"] == selected_source]
+    else:
+        filtered_news_df = news_df
+        
+    st.dataframe(filtered_news_df)
+
+    # Filter and display only relevant protocol news
+    protocol_news_df = filter_news_by_protocols(news_df, protocols)
+    
+    st.write("### News Related to Specific Protocols")
+    protocols_list = ["All"] + protocols
+    selected_protocol = st.selectbox("Filter by Protocol", protocols_list)
+    
+    if selected_protocol != "All":
+        filtered_protocol_news_df = protocol_news_df[protocol_news_df["Matched Protocols"].str.contains(selected_protocol, case=False, na=False)]
+    else:
+        filtered_protocol_news_df = protocol_news_df
+        
+    st.dataframe(filtered_protocol_news_df)
+else:
+    st.write("Click 'Fetch and Display Latest News' to load data.")
